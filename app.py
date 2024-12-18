@@ -24,10 +24,19 @@ def register():
         username = request.form['username']
         password = request.form['password']
         email = request.form['email']
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("Email already exists. Please use a different email.", "error")
+            return redirect(url_for('register'))
+
+        # Add the new user if email doesn't exist
         new_user = User(username=username, password=password, email=email)
         db.session.add(new_user)
         db.session.commit()
+        flash("Registration successful. Please log in.", "success")
         return redirect(url_for('login'))
+
     return render_template("register.html")
 
 @app.route('/login', methods=["GET", "POST"])
