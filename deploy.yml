@@ -36,17 +36,15 @@ jobs:
           echo "Running tests..."
           # Example: pytest tests/
 
-    - name: Zip artifact for deployment
-  run: |
-    zip -r release.zip . -x "venv/*" "__pycache__/*" ".git/*" "*.md"
+      - name: Zip artifact for deployment
+        run: |
+          zip -r release.zip . -x "venv/*" "__pycache__/*" ".git/*" "*.md"
 
-- name: Deploy to Azure Web App
-  uses: azure/webapps-deploy@v2
-  with:
-    app-name: 'userserviceapp'
-    slot-name: 'Production'
-    package: ./release.zip
-    clean: true
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -54,32 +52,24 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write  # Required for JWT-based authentication
 
     steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: python-app
-
-      - name: Unzip Artifact
-        run: unzip release.zip
-
-- name: Azure Login
-  uses: azure/login@v2
-  with:
-    client-id: ${{ secrets.AZURE_CLIENT_ID }}
-    tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-    client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-
-
+          path: .
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: 'EventServiceApp'
-          # Remove slot-name unless you explicitly have slots
-          package: .
-
+          app-name: 'EventServiceApp'   # Correct Azure Web App name
+          package: ./release.zip       # Path to the zipped artifact
