@@ -3,14 +3,28 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from models import db, User, Event
 from datetime import datetime  
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    'mssql+pyodbc://@finalsqlserver.database.windows.net:1433/FinalDB'
-    '?authentication=ActiveDirectoryInteractive'
-    '&driver=ODBC+Driver+17+for+SQL+Server'
-)
+from flask_migrate import Migrate
+from models import db
 
+from flask import Flask
+from flask_migrate import Migrate
+from models import db
+import os
+
+app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    "mssql+pyodbc://sqladmin:MyNewStrongP@ssword123@finalsqlserver.database.windows.net:1433/FinalDB"
+    "?driver=ODBC+Driver+17+for+SQL+Server"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'
+
+db.init_app(app)
+migrate = Migrate(app, db)
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 db.init_app(app)
 login_manager = LoginManager(app)
