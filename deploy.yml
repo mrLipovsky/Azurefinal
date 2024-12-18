@@ -37,7 +37,8 @@ jobs:
           # Example: pytest tests/
 
     - name: Zip artifact for deployment
-  run: zip -r release.zip . -x "venv/*" "__pycache__/*" "*.git*" "*.md"
+  run: |
+    zip -r release.zip . -x "venv/*" "__pycache__/*" ".git/*" "*.md"
 
 - name: Deploy to Azure Web App
   uses: azure/webapps-deploy@v2
