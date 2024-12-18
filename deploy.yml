@@ -46,6 +46,7 @@ jobs:
     app-name: 'userserviceapp'
     slot-name: 'Production'
     package: ./release.zip
+    clean: true
 
   deploy:
     runs-on: ubuntu-latest
