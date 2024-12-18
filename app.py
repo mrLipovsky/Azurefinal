@@ -4,7 +4,12 @@ from models import db, User, Event
 from datetime import datetime  
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'mssql+pyodbc://@finalsqlserver.database.windows.net:1433/FinalDB'
+    '?authentication=ActiveDirectoryInteractive'
+    '&driver=ODBC+Driver+17+for+SQL+Server'
+)
+
 app.secret_key = 'your_secret_key'
 
 db.init_app(app)
