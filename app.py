@@ -1,114 +1,70 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_migrate import Migrate
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from models import db, User, Event
+from datetime import datetime  
 
-# Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with an actual secret key
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.secret_key = 'your_secret_key'
 
-# Initialize database and migration
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-
-# Initialize Login Manager
+db.init_app(app)
 login_manager = LoginManager(app)
-login_manager.login_view = "login"
 
-# User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---------------------- Database Models ----------------------
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)  # Hashed password
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    date = db.Column(db.DateTime, nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-# ---------------------- Routes ----------------------
-
-@app.route("/")
+@app.route('/')
 def home():
     return render_template("home.html")
 
-@app.route("/register", methods=["POST", "GET"])
+@app.route('/register', methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form['username']
-        password = generate_password_hash(request.form['password'], method='sha256')
+        password = request.form['password']
         email = request.form['email']
-
-        # Check if user exists
-        if User.query.filter_by(username=username).first():
-            flash("Username already taken!", "danger")
-            return redirect(url_for("register"))
-
         new_user = User(username=username, password=password, email=email)
         db.session.add(new_user)
         db.session.commit()
-        flash("Registration Successful. Please log in.", "success")
-        return redirect(url_for("login"))
+        return redirect(url_for('login'))
     return render_template("register.html")
 
-@app.route("/login", methods=["POST", "GET"])
+@app.route('/login', methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
+        user = User.query.filter_by(username=request.form['username']).first()
+        if user and user.password == request.form['password']:
             login_user(user)
-            return redirect(url_for("dashboard"))
-        flash("Invalid credentials", "danger")
+            return redirect(url_for('dashboard'))
+        flash("Invalid credentials")
     return render_template("login.html")
 
-@app.route("/logout")
+@app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash("You have been logged out.", "success")
-    return redirect(url_for("home"))
+    return redirect(url_for('login'))
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    events = Event.query.all()
-    return render_template("event_management.html", events=events)
-
-@app.route("/create_event", methods=["POST", "GET"])
+@app.route('/create_event', methods=["GET", "POST"])
 @login_required
 def create_event():
     if request.method == "POST":
-        name = request.form['name']
+        title = request.form['title']
         description = request.form['description']
-        date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-        location = request.form['location']
-
-        new_event = Event(name=name, description=description, date=date, location=location, created_by=current_user.id)
+        date = datetime.strptime(request.form['date'], '%Y-%m-%d')  # Convert to datetime object
+        new_event = Event(title=title, description=description, date=date, created_by=current_user.id)
         db.session.add(new_event)
         db.session.commit()
-        flash("Event created successfully!", "success")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for('dashboard'))
     return render_template("create_event.html")
 
-# ---------------------- Main Entry Point ----------------------
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    events = Event.query.all()
+    return render_template("dashboard.html", events=events)
 
 if __name__ == "__main__":
     app.run(debug=True)

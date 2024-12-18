@@ -1,0 +1,7 @@
+<h2>Event Management</h2>
+<ul>
+{% for event in events %}
+    <li>{{ event.name }} on {{ event.date }} at {{ event.location }}</li>
+{% endfor %}
+</ul>
+<a href="/create_event">Create Event</a>
