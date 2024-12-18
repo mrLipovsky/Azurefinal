@@ -36,15 +36,15 @@ jobs:
           echo "Running tests..."
           # Example: pytest tests/
 
-      - name: Zip Artifact for Deployment
-        run: |
-          zip -r release.zip . -x "venv/*" "*.git*" "*__pycache__*" "*.md"
+    - name: Zip artifact for deployment
+  run: zip -r release.zip . -x "venv/*" "__pycache__/*" "*.git*" "*.md"
 
-      - name: Upload Artifact for Deployment
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: release.zip
+- name: Deploy to Azure Web App
+  uses: azure/webapps-deploy@v2
+  with:
+    app-name: 'userserviceapp'
+    slot-name: 'Production'
+    package: ./release.zip
 
   deploy:
     runs-on: ubuntu-latest
